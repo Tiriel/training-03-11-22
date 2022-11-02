@@ -14,6 +14,13 @@
         {% endblock %}
     </head>
     <body>
-        {% block body %}{% endblock %}
+        <header>
+            {% block header %}
+                {{ include('navbar/_navbar.html.twig', {currentRoute: app.request.attributes.get('_route')}, with_context = false) }}
+            {% endblock header %}
+        </header>
+        <main class="container mt-5">
+            {% block body %}{% endblock %}
+        </main>
     </body>
 </html>
