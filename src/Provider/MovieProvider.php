@@ -9,6 +9,7 @@ use App\Transformer\OmdbMovieTransformer;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Security;
+use Symfony\Component\Workflow\WorkflowInterface;
 
 class MovieProvider
 {
@@ -16,7 +17,8 @@ class MovieProvider
         private MovieRepository $movieRepository,
         private OMDbApiConsumer $consumer,
         private OmdbMovieTransformer $transformer,
-        private Security $security
+        private Security $security,
+        private WorkflowInterface $movieStateMachine
     ) {}
 
     public function getMovieByTitle(string $title)
@@ -40,9 +42,22 @@ class MovieProvider
         }
 
         $movie->setAddedBy($this->security->getUser());
+        $this->chooseTransition($movie);
         $this->movieRepository->add($movie, true);
 
         return $movie;
+    }
+
+    private function chooseTransition(Movie $movie): void
+    {
+        if ($this->movieStateMachine->can($movie, 'publish')) {
+            if ($movie->getRated() === 'G') {
+                $this->movieStateMachine->apply($movie, 'publish');
+                return;
+            }
+
+            $this->movieStateMachine->apply($movie, 'hold');
+        }
     }
 }
 

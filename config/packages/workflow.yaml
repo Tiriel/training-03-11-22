@@ -1,0 +1,47 @@
+framework:
+    workflows:
+        book:
+            audit_trail:
+                enabled: true
+            type: state_machine
+            marking_store:
+                type: method
+                property: status
+            supports: 'App\Entity\Book'
+            initial_marking: draft
+            places:
+                - 'draft'
+                - 'published'
+                - 'archived'
+            transitions:
+                publish:
+                    from: draft
+                    to: published
+                archive:
+                    from: published
+                    to: archived
+        movie:
+            audit_trail:
+                enabled: true
+            type: state_machine
+            marking_store:
+                type: method
+                property: status
+            supports: 'App\Entity\Movie'
+            initial_marking: draft
+            places:
+                - 'draft'
+                - 'to_review'
+                - 'published'
+                - 'archived'
+            transitions:
+                publish:
+                    from: [draft, to_review]
+                    to: published
+                hold:
+                    from: draft
+                    to: to_review
+                archive:
+                    from: published
+                    to: archived
+

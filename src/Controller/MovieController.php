@@ -21,7 +21,7 @@ class MovieController extends AbstractController
     public function index(MovieRepository $repository): Response
     {
         return $this->render('movie/index.html.twig', [
-            'movies' => $repository->findAll(),
+            'movies' => $repository->findBy(['status' => 'published']),
         ]);
     }
 

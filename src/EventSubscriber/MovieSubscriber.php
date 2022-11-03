@@ -5,11 +5,13 @@ namespace App\EventSubscriber;
 use App\Entity\Movie;
 use App\Event\MovieEvent;
 use App\Repository\UserRepository;
+use App\Security\Voter\MovieVoter;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Workflow\Event\GuardEvent;
 
 class MovieSubscriber implements EventSubscriberInterface
 {
@@ -35,10 +37,18 @@ class MovieSubscriber implements EventSubscriberInterface
         $this->mailer->send($mail);
     }
 
+    public function onMovieWorkflowGuardPublishEvent(GuardEvent $event): void
+    {
+        if (!$this->security->isGranted(MovieVoter::VIEW, $event->getSubject())) {
+            $event->setBlocked(true);
+        }
+    }
+
     public static function getSubscribedEvents(): array
     {
         return [
             MovieEvent::UNDERAGE => 'onMovieEventUnderage',
+            //'workflow.movie.guard.publish' => 'onMovieWorkflowGuardPublishEvent'
         ];
     }
 

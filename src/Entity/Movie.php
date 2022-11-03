@@ -43,6 +43,9 @@ class Movie
     #[ORM\ManyToOne]
     private ?User $addedBy = null;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $status = 'draft';
+
     public function __construct()
     {
         $this->genres = new ArrayCollection();
@@ -169,6 +172,18 @@ class Movie
     public function setAddedBy(?User $addedBy): self
     {
         $this->addedBy = $addedBy;
+
+        return $this;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?string $status): self
+    {
+        $this->status = $status;
 
         return $this;
     }

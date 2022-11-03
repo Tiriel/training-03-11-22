@@ -33,6 +33,9 @@ class Book
     #[ORM\OneToMany(mappedBy: 'book', targetEntity: Comment::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $comments;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $status = 'draft';
+
     public function __construct()
     {
         $this->comments = new ArrayCollection();
@@ -129,6 +132,18 @@ class Book
                 $comment->setBook(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?string $status): self
+    {
+        $this->status = $status;
 
         return $this;
     }
