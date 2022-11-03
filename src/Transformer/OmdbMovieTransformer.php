@@ -15,6 +15,10 @@ class OmdbMovieTransformer implements DataTransformerInterface
 
     public function transform($value): Movie
     {
+        if (!\array_key_exists('Genre', $value)) {
+            throw new \InvalidArgumentException();
+        }
+
         $genres = explode(', ', $value['Genre']);
         $date = $value['Released'] === 'N/A' ? $value['Year'] : $value['Released'];
         $movie = (new Movie())
@@ -38,7 +42,7 @@ class OmdbMovieTransformer implements DataTransformerInterface
         return $movie;
     }
 
-    public function reverseTransform(mixed $value)
+    public function reverseTransform(mixed $value): mixed
     {
         throw new \RuntimeException('Method not implemented.');
     }
