@@ -6,43 +6,23 @@ use App\Entity\Genre;
 use App\Entity\Movie;
 use App\Repository\GenreRepository;
 use App\Transformer\OmdbMovieTransformer;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
 
-class OmdbMovieTransformerTest extends WebTestCase
+class OmdbMovieTransformerTest extends TestCase
 {
-    /**
-     * @group unit
-     */
-    public function testTransformerReturnsMovieInstance()
+    public function testReverseTransformThrows()
     {
-        $genreMock = $this->getMockBuilder(Genre::class)
-            ->disableOriginalConstructor()
-            ->disableOriginalClone()
-            ->disableArgumentCloning()
-            ->disallowMockingUnknownTypes()
-            ->onlyMethods(['getId', 'getName'])
-            ->getMock();
-        $genreMock->method('getId')->willReturn(1);
-        $genreMock->method('getName')->willReturn('Action');
+        $mockRepository = $this->createMock(GenreRepository::class);
+        $transformer = new OmdbMovieTransformer($mockRepository);
 
-        $repositoryMock = $this->getMockBuilder(GenreRepository::class)
-            ->disableOriginalConstructor()
-            ->disableOriginalClone()
-            ->disableArgumentCloning()
-            ->disallowMockingUnknownTypes()
-            ->onlyMethods(['findOneBy'])
-            ->getMock();
-        $repositoryMock->expects($this->exactly(3))
-            ->method('findOneBy')
-            ->willReturn($this->returnCallback(function () use ($genreMock) {
-                $args = func_get_args();
-                if (isset($args[0]) && $args[0] === ['name' => 'Action']) {
-                    return $genreMock;
-                }
-                return null;
-            }));
-        $transformer = new OmdbMovieTransformer($repositoryMock);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Method not implemented.');
+        $transformer->reverseTransform([]);
+    }
 
+    public function testGenreAreTakenFromDatabaseWhenTheyExist()
+    {
         $data = [
             'Title' => 'Star Wars: Episode IV - A New Hope',
             'Year' => '1977',
@@ -53,21 +33,55 @@ class OmdbMovieTransformerTest extends WebTestCase
             'Poster' => 'https://m.media-amazon.com/images/M/MV5BOTA5NjhiOTAtZWM0ZC00MWNhLThiMzEtZDFkOTk2OTU1ZDJkXkEyXkFqcGdeQXVyMTA4NDI1NTQx._V1_SX300.jpg',
             'imdbID' => 'tt0076759',
         ];
-        $movie = $transformer->transform($data);
 
+        $transformer = new OmdbMovieTransformer(
+            $this->getGenreRepositoryMock(
+                $this->getGenreMock()
+            )
+        );
+
+        $movie = $transformer->transform($data);
         $this->assertInstanceOf(Movie::class, $movie);
         $this->assertSame(1, $movie->getGenres()[0]->getId());
         $this->assertNull($movie->getGenres()[1]->getId());
     }
 
-    /**
-     * @group unit
-     */
-    public function testTransformerThrowsOnInvalidArray()
+    private function getGenreMock(): Genre
     {
-        $transform = new OmdbMovieTransformer($this->createMock(GenreRepository::class));
-        $this->expectException(\InvalidArgumentException::class);
+        $genreMock = $this->getMockBuilder(Genre::class)
+            ->disableOriginalConstructor()
+            ->disableOriginalClone()
+            ->disableArgumentCloning()
+            ->disallowMockingUnknownTypes()
+            ->onlyMethods(['getId', 'getName'])
+            ->getMock();
+        $genreMock->method('getId')
+            ->willReturn(1);
+        $genreMock->method('getName')
+            ->willReturn('Action');
 
-        $movie = $transform->transform(['foo' => 'bar']);
+        return $genreMock;
+    }
+
+    private function getGenreRepositoryMock(Genre $genreMock): GenreRepository
+    {
+        $mockRepository = $this->getMockBuilder(GenreRepository::class)
+            ->disableOriginalConstructor()
+            ->disableOriginalClone()
+            ->disableArgumentCloning()
+            ->disallowMockingUnknownTypes()
+            ->onlyMethods(['findOneBy'])
+            ->getMock();
+        $mockRepository->expects($this->exactly(3))
+            ->method('findOneBy')
+            ->willReturn($this->returnCallback(function () use ($genreMock) {
+                $args = func_get_args();
+                if (isset($args[0]) && $args[0] === ['name' => 'Action']) {
+                    return $genreMock;
+                }
+                return null;
+            }));
+
+        return $mockRepository;
     }
 }

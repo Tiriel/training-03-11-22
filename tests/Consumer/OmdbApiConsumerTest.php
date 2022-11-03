@@ -3,13 +3,13 @@
 namespace App\Tests\Consumer;
 
 use App\Consumer\OMDbApiConsumer;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class OmdbApiConsumerTest extends WebTestCase
+class OmdbApiConsumerTest extends TestCase
 {
     private const FILM_JSON = <<<EOD
 {
@@ -60,6 +60,7 @@ EOD;
 }
 EOD;
 
+
     private static HttpClientInterface $client;
     private static OMDbApiConsumer $consumer;
 
@@ -67,15 +68,12 @@ EOD;
     {
         $responses = [
             new MockResponse(self::FILM_JSON),
-            new MockResponse(self::ERROR_JSON),
+            new MockResponse(self::ERROR_JSON)
         ];
         static::$client = new MockHttpClient($responses);
         static::$consumer = new OMDbApiConsumer(static::$client);
     }
 
-    /**
-     * @group unit
-     */
     public function testConsumerReturnsArrayWithProperApiReturn()
     {
         $data = static::$consumer->consume('t', 'Star Wars');
@@ -85,22 +83,16 @@ EOD;
         $this->assertContains('Star Wars: Episode IV - A New Hope', $data);
     }
 
-    /**
-     * @group unit
-     */
     public function testConsumerThrowsOnBadApiReturn()
     {
         $this->expectException(NotFoundHttpException::class);
-        static::$consumer->consume('t', 'sdfasdf');
+        static::$consumer->consume('t', 'zxfgz');
     }
 
-    /**
-     * @group unit
-     */
     public function testConsumerThrowsOnBadModeCall()
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid mode provided for consumer : i, or t allowed, f given');
-        static::$consumer->consume('f', 'sdfasdf');
+        static::$consumer->consume('f', 'zxfgz');
     }
 }

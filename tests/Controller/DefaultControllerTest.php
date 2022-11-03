@@ -2,29 +2,64 @@
 
 namespace App\Tests\Controller;
 
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouterInterface;
 
 class DefaultControllerTest extends WebTestCase
 {
+    private static KernelBrowser $client;
+
+    public static function setUpBeforeClass(): void
+    {
+        static::$client = static::createClient();
+    }
+
+    public function testHomePageContentIsDisplayed()
+    {
+        $crawler = static::$client->request('GET', '/');
+
+        $titleText = $crawler->filter('h1')->innerText();
+        $cards = $crawler->filter('div.card.w-75');
+
+        $this->assertSame('SensioTV+', $titleText);
+        $this->assertCount(5, $cards);
+    }
+
     /**
      * @dataProvider providePublicUrlsAndStatusCodes
      * @group smoke
      */
-    public function testPublicUrlIsSuccessful(string $url, int $statusCode): void
+    public function testPublicUrlIsNotServerError(string $method, string $url): void
     {
-        $client = static::createClient();
-        $client->request('GET', $url);
+        static::$client->request($method, $url);
+        if (\in_array(static::$client->getResponse()->getStatusCode(), [301, 302, 307, 308])) {
+            static::$client->followRedirect();
+        }
 
-        $this->assertResponseStatusCodeSame($statusCode);
+        $this->assertSame(200, static::$client->getResponse()->getStatusCode());
     }
 
     public function providePublicUrlsAndStatusCodes(): \Generator
     {
-        yield 'index' => ['/', 200];
-        yield 'contact' => ['/contact', 200];
-        yield 'book_index' => ['/book', 200];
-        yield 'book_show' => ['/book/3', 404];
-        yield 'hello' => ['/hello/Georges', 200];
-        yield 'toto' => ['/toto', 404];
+        $router = static::getContainer()->get(RouterInterface::class);
+        $collection = $router->getRouteCollection();
+        static::ensureKernelShutdown();
+
+        foreach ($collection as $routeName => $route) {
+            /** @var Route $route */
+            $variables = $route->compile()->getVariables();
+            if (count(array_diff($variables, $route->getDefaults())) > 0) {
+                continue;
+            }
+            if ([] === $methods = $route->getMethods()) {
+                $methods[] = 'GET';
+            }
+            foreach ($methods as $method) {
+                $path = $router->generate($routeName);
+                yield "$method $path" => [$method, $path];
+            }
+        }
     }
 }
